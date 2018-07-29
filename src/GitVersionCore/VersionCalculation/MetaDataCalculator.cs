@@ -1,6 +1,7 @@
 ﻿namespace GitVersion.VersionCalculation
 {
     using System.Linq;
+    using GitVersion.Extensions;
     using LibGit2Sharp;
 
     public class MetaDataCalculator : IMetaDataCalculator
@@ -14,7 +15,7 @@
                 SortBy = CommitSortStrategies.Topological | CommitSortStrategies.Time
             };
 
-            var commitLog = context.Repository.Commits.QueryBy(qf);
+            var commitLog = context.Repository.Commits.QueryByPath(context.PathFilter, qf);
             var commitsSinceTag = commitLog.Count();
             Logger.WriteInfo(string.Format("{0} commits found between {1} and {2}", commitsSinceTag, baseVersionSource.Sha, context.CurrentCommit.Sha));
 

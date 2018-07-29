@@ -333,6 +333,12 @@ namespace GitVersion
                     continue;
                 }
 
+                if (name.IsSwitch("pathfilter"))
+                {
+                    arguments.PathFilter = value?.Trim('/');
+                    continue;
+                }
+
                 if (name.IsSwitch("verbosity"))
                 {
                     if (!Enum.TryParse(value, true, out arguments.Verbosity))

@@ -3,6 +3,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using BaseVersionCalculators;
+    using GitVersion.Extensions;
     using LibGit2Sharp;
 
     /// <summary>
@@ -15,14 +16,14 @@
         public override IEnumerable<BaseVersion> GetVersions(GitVersionContext context)
         {
             Commit baseVersionSource;
-            var currentBranchTip = context.CurrentBranch.Tip;
+            var currentBranchTip = context.CurrentBranch.GetTip(context.PathFilter);
 
             try
             {
-                baseVersionSource = context.Repository.Commits.QueryBy(new CommitFilter
+                baseVersionSource = context.Repository.Commits.QueryByPath(context.PathFilter, new CommitFilter
                 {
                     IncludeReachableFrom = currentBranchTip
-                }).First(c => !c.Parents.Any());
+                }).Last();
             }
             catch (NotFoundException exception)
             {

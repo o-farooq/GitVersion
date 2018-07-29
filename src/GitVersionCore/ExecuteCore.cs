@@ -21,7 +21,7 @@ namespace GitVersion
             gitVersionCache = new GitVersionCache(fileSystem);
         }
 
-        public VersionVariables ExecuteGitVersion(string targetUrl, string dynamicRepositoryLocation, Authentication authentication, string targetBranch, bool noFetch, string workingDirectory, string commitId, Config overrideConfig = null, bool noCache = false)
+        public VersionVariables ExecuteGitVersion(string targetUrl, string dynamicRepositoryLocation, Authentication authentication, string targetBranch, bool noFetch, string workingDirectory, string commitId, Config overrideConfig = null, bool noCache = false, string pathFilter = null)
         {
             // Normalise if we are running on build server
             var applicableBuildServers = BuildServerList.GetApplicableBuildServers();
@@ -57,7 +57,7 @@ namespace GitVersion
             var versionVariables = noCache ? default(VersionVariables) : gitVersionCache.LoadVersionVariablesFromDiskCache(gitPreparer, cacheKey);
             if (versionVariables == null)
             {
-                versionVariables = ExecuteInternal(targetBranch, commitId, gitPreparer, buildServer, overrideConfig);
+                versionVariables = ExecuteInternal(targetBranch, commitId, gitPreparer, buildServer, overrideConfig, pathFilter);
 
                 if (!noCache)
                 {
@@ -103,14 +103,14 @@ namespace GitVersion
             return currentBranch;
         }
 
-        VersionVariables ExecuteInternal(string targetBranch, string commitId, GitPreparer gitPreparer, IBuildServer buildServer, Config overrideConfig = null)
+        VersionVariables ExecuteInternal(string targetBranch, string commitId, GitPreparer gitPreparer, IBuildServer buildServer, Config overrideConfig = null, string pathFilter = null)
         {
             var versionFinder = new GitVersionFinder();
             var configuration = ConfigurationProvider.Provide(gitPreparer, fileSystem, overrideConfig: overrideConfig);
 
             return gitPreparer.WithRepository(repo =>
             {
-                var gitVersionContext = new GitVersionContext(repo, targetBranch, configuration, commitId: commitId);
+                var gitVersionContext = new GitVersionContext(repo, targetBranch, configuration, commitId: commitId, pathFilter: pathFilter);
                 var semanticVersion = versionFinder.FindVersion(gitVersionContext);
 
                 return VariableProvider.GetVariablesFor(semanticVersion, gitVersionContext.Configuration, gitVersionContext.IsCurrentCommitTagged);

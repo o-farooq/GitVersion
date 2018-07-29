@@ -3,6 +3,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Text.RegularExpressions;
+    using GitVersion.Extensions;
     using VersionCalculation.BaseVersionCalculators;
     using LibGit2Sharp;
 
@@ -55,7 +56,7 @@
                 return null;
             }
 
-            var commits = GetIntermediateCommits(context.Repository, baseVersion.BaseVersionSource, context.CurrentCommit);
+            var commits = GetIntermediateCommits(context.PathFilter, context.Repository, baseVersion.BaseVersionSource, context.CurrentCommit);
 
             if (context.Configuration.CommitMessageIncrementing == CommitMessageIncrementMode.MergeMessageOnly)
             {
@@ -86,7 +87,7 @@
             return null;
         }
 
-        private static IEnumerable<Commit> GetIntermediateCommits(IRepository repo, Commit baseCommit, Commit headCommit)
+        private static IEnumerable<Commit> GetIntermediateCommits(string contextFilterPath, IRepository repo, Commit baseCommit, Commit headCommit)
         {
             if (baseCommit == null) yield break;
 
@@ -95,10 +96,11 @@
                 var filter = new CommitFilter
                 {
                     IncludeReachableFrom = headCommit,
-                    SortBy = CommitSortStrategies.Topological | CommitSortStrategies.Reverse
+                    SortBy = CommitSortStrategies.Topological | CommitSortStrategies.Time
                 };
 
-                intermediateCommitCache = repo.Commits.QueryBy(filter).ToList();
+                intermediateCommitCache = repo.Commits.QueryByPath(contextFilterPath, filter).ToList();
+                intermediateCommitCache.Reverse();
             }
 
             var found = false;

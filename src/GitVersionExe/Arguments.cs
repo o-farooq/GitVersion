@@ -48,7 +48,7 @@ namespace GitVersion
         public bool ShowConfig;
         public bool NoFetch;
         public bool NoCache;
-
+        public string PathFilter;
         public VerbosityLevel Verbosity;
 
         public void AddAssemblyInfoFileName(string fileName)

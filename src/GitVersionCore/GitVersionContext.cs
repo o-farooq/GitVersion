@@ -3,23 +3,25 @@
     using LibGit2Sharp;
     using System;
     using System.Linq;
+    using GitVersion.Extensions;
 
     /// <summary>
     /// Contextual information about where GitVersion is being run
     /// </summary>
     public class GitVersionContext
     {
-        public GitVersionContext(IRepository repository, string targetBranch, Config configuration, bool onlyEvaluateTrackedBranches = true, string commitId = null)
-             : this(repository, GitVersionContext.GetTargetBranch(repository, targetBranch), configuration, onlyEvaluateTrackedBranches, commitId)
+        public GitVersionContext(IRepository repository, string targetBranch, Config configuration, bool onlyEvaluateTrackedBranches = true, string commitId = null, string pathFilter = null)
+             : this(repository, GitVersionContext.GetTargetBranch(repository, targetBranch), configuration, onlyEvaluateTrackedBranches, commitId, pathFilter)
         {
         }
 
-        public GitVersionContext(IRepository repository, Branch currentBranch, Config configuration, bool onlyEvaluateTrackedBranches = true, string commitId = null)
+        public GitVersionContext(IRepository repository, Branch currentBranch, Config configuration, bool onlyEvaluateTrackedBranches = true, string commitId = null, string pathFilter = null)
         {
             Repository = repository;
             RepositoryMetadataProvider = new GitRepoMetadataProvider(repository, configuration);
             FullConfiguration = configuration;
             OnlyEvaluateTrackedBranches = onlyEvaluateTrackedBranches;
+            PathFilter = pathFilter;
 
             if (currentBranch == null)
                 throw new InvalidOperationException("Need a branch to operate on");
@@ -42,7 +44,7 @@
             if (CurrentCommit == null)
             {
                 Logger.WriteInfo("Using latest commit on specified branch");
-                CurrentCommit = currentBranch.Tip;
+                CurrentCommit = currentBranch.GetTip(PathFilter);
             }
 
             if (currentBranch.IsDetachedHead())
@@ -80,6 +82,7 @@
         public Commit CurrentCommit { get; private set; }
         public bool IsCurrentCommitTagged { get; private set; }
         public GitRepoMetadataProvider RepositoryMetadataProvider { get; private set; }
+        public string PathFilter { get; private set; }
 
         void CalculateEffectiveConfiguration()
         {

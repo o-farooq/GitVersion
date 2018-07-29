@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using GitVersion.Extensions;
     using LibGit2Sharp;
 
     /// <summary>
@@ -19,10 +20,9 @@
 
         public IEnumerable<BaseVersion> GetTaggedVersions(GitVersionContext context, Branch currentBranch, DateTimeOffset? olderThan)
         {
-            var allTags = GitRepoMetadataProvider.GetValidVersionTags(context.Repository, context.Configuration.GitTagPrefix, olderThan); 
-                
-            var tagsOnBranch = currentBranch
-                .Commits
+            var allTags = GitRepoMetadataProvider.GetValidVersionTags(context.Repository, context.Configuration.GitTagPrefix, olderThan);
+
+            var tagsOnBranch = context.Repository.Commits.QueryByPath(context.PathFilter, new CommitFilter { IncludeReachableFrom = currentBranch.CanonicalName })
                 .SelectMany(commit => { return allTags.Where(t => IsValidTag(t.Item1, commit)); })
                 .Select(t =>
                 {

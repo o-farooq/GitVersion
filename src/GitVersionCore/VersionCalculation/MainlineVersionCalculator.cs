@@ -7,6 +7,8 @@ using System.Text.RegularExpressions;
 
 namespace GitVersion.VersionCalculation
 {
+    using GitVersion.Extensions;
+
     class MainlineVersionCalculator
     {
         IMetaDataCalculator metaDataCalculator;
@@ -32,26 +34,26 @@ namespace GitVersion.VersionCalculation
                 //         / |
                 // master *  *
                 // 
-
                 var mainlineTip = GetMainlineTip(context);
-                var commitsNotOnMainline = context.Repository.Commits.QueryBy(new CommitFilter
+                var commitsNotOnMainline = context.Repository.Commits.QueryByPath(context.PathFilter, new CommitFilter
                 {
                     IncludeReachableFrom = context.CurrentBranch,
                     ExcludeReachableFrom = mainlineTip,
-                    SortBy = CommitSortStrategies.Reverse,
+                    SortBy = CommitSortStrategies.Time,
                     FirstParentOnly = true
                 }).Where(c => c.Sha != baseVersion.BaseVersionSource.Sha && c.Parents.Count() == 1).ToList();
-                var commitLog = context.Repository.Commits.QueryBy(new CommitFilter
+
+                var commitLog = context.Repository.Commits.QueryByPath(context.PathFilter, new CommitFilter
                 {
                     IncludeReachableFrom = context.CurrentBranch,
                     ExcludeReachableFrom = baseVersion.BaseVersionSource,
-                    SortBy = CommitSortStrategies.Reverse,
+                    SortBy = CommitSortStrategies.Time,
                     FirstParentOnly = true
                 })
                 .Where(c => c.Sha != baseVersion.BaseVersionSource.Sha)
                 .Except(commitsNotOnMainline)
                 .ToList();
-
+                commitLog.Reverse();
                 var directCommits = new List<Commit>();
 
                 // Scans commit log in reverse, aggregating merge commits
@@ -152,7 +154,7 @@ namespace GitVersion.VersionCalculation
             {
                 var mainlineBranch = possibleMainlineBranches[0];
                 Logger.WriteInfo("Mainline for current branch is " + mainlineBranch.FriendlyName);
-                return mainlineBranch.Tip;
+                return mainlineBranch.GetTip(context.PathFilter);
             }
 
             var chosenMainline = possibleMainlineBranches[0];
@@ -160,7 +162,8 @@ namespace GitVersion.VersionCalculation
                 "Multiple mainlines ({0}) have the same merge base for the current branch, choosing {1} because we found that branch first...",
                 string.Join(", ", possibleMainlineBranches.Select(b => b.FriendlyName)),
                 chosenMainline.FriendlyName));
-            return chosenMainline.Tip;
+
+             return chosenMainline.GetTip(context.PathFilter);
         }
 
         private static SemanticVersion IncrementForEachCommit(GitVersionContext context, List<Commit> directCommits, SemanticVersion mainlineVersion, string branch = null)
@@ -187,8 +190,8 @@ namespace GitVersion.VersionCalculation
                 ExcludeReachableFrom = findMergeBase
             };
             var commits = mergeCommit == null ?
-                context.Repository.Commits.QueryBy(filter).ToList() :
-                new[] { mergeCommit }.Union(context.Repository.Commits.QueryBy(filter)).ToList();
+                context.Repository.Commits.QueryByPath(context.PathFilter, filter).ToList():
+                new[] { mergeCommit }.Union(context.Repository.Commits.QueryByPath(context.PathFilter, filter)).ToList();
             commitLog.RemoveAll(c => commits.Any(c1 => c1.Sha == c.Sha));
             return IncrementStrategyFinder.GetIncrementForCommits(context, commits)
                 ?? TryFindIncrementFromMergeMessage(mergeCommit, context);
